@@ -31,7 +31,7 @@ export class BookingService {
     });
   }
 
-  parseXmlFileWithoutLib(filePath: string): any {
+  async parseXmlFileWithoutLib(filePath: string): Promise<any> {
     // Read the XML file content
     const xmlStr = fs.readFileSync(filePath, 'utf-8');
 
@@ -80,7 +80,7 @@ export class BookingService {
             } else if (child.nodeType === node.TEXT_NODE) {
               const textValue = parseXmlFromFile(child as Element);
               if (textValue !== undefined) {
-                json['_'] = textValue; // Use '_' to match xml2js output
+                json['_'] = textValue;
               }
             }
           });
@@ -137,6 +137,84 @@ export class BookingService {
 
     const filePath = path.join(this.xmlFolder, file);
     const jsonData = await this.parseXmlFileWithLib(filePath);
+
+    const booking = jsonData['soap:Body'].FetchBookingResponse.HotelReservation;
+    const UniqueIDList = booking['r:UniqueIDList']['c:UniqueID'];
+    const RoomStays = booking['r:RoomStays']['hc:RoomStay'];
+    const ResGuests =
+      booking['r:ResGuests']['r:ResGuest']['r:Profiles']['Profile'];
+    const ReservationHistory = booking['r:ReservationHistory'];
+
+    const arrival = await this.formatDate(
+      RoomStays['hc:TimeSpan']['hc:StartDate'],
+    );
+
+    const departure = await this.formatDate(
+      RoomStays['hc:TimeSpan']['hc:EndDate'],
+    );
+    const createdDt = await this.formatDate(ReservationHistory.insertDate);
+
+    const guestCounts = RoomStays['hc:GuestCounts']['hc:GuestCount'];
+    const adults =
+      guestCounts.find((item: any) => item.ageQualifyingCode === 'ADULT')
+        ?.count || 0;
+    const children =
+      guestCounts.find((item: any) => item.ageQualifyingCode === 'CHILD')
+        ?.count || 0;
+
+    const roomRate = RoomStays['hc:RoomRates']['hc:RoomRate'];
+    const rateAmount = {
+      amount: roomRate['hc:Rates']['hc:Rate']['hc:Base']._,
+      currency: roomRate['hc:Rates']['hc:Rate']['hc:Base'].currencyCode,
+    };
+
+    return {
+      confirmation_no: UniqueIDList[0]._,
+      resv_name_id: UniqueIDList[1]._,
+      arrival: arrival,
+      departure: departure,
+      adults: adults,
+      children: children,
+      roomtype: roomRate.roomTypeCode,
+      ratecode: roomRate.ratePlanCode,
+      rateamount: rateAmount,
+      guarantee: RoomStays['hc:Guarantee'].guaranteeType,
+      method_payment:
+        RoomStays['hc:Payment']['hc:PaymentsAccepted']['hc:PaymentType'][
+          'hc:OtherPayment'
+        ].type,
+      computed_resv_status: RoomStays['hc:HotelReference']._,
+      last_name: ResGuests?.Customer?.PersonName?.['c:lastName'] ?? '',
+      first_name: ResGuests?.Customer?.PersonName?.['c:firstName'] ?? '',
+      title: ResGuests?.Customer?.PersonName?.['c:nameTitle'] ?? '',
+      phone_number: ResGuests?.Phones?.NamePhone?.['c:PhoneNumber'] ?? '',
+      email: ResGuests?.Customer?.PersonName?.['c:email'] ?? '',
+      booking_balance: RoomStays['hc:CurrentBalance']._,
+      booking_created_date: createdDt,
+      address: ResGuests?.Addresses?.NameAddress?.['c:countryCode'],
+    };
+  }
+
+  async getBookingByConfirmationNoWithoutLib(
+    confirmationNo: string,
+  ): Promise<any> {
+    const files = fs.readdirSync(this.xmlFolder);
+
+    // Find the file matching the confirmation number
+    const file = files.find((file) => {
+      const fileName = path.parse(file).name;
+      const number = fileName.replace(/^booking_/, '');
+      return number === confirmationNo;
+    });
+
+    if (!file) {
+      throw new NotFoundException(
+        `Booking with confirmation number ${confirmationNo} not found`,
+      );
+    }
+
+    const filePath = path.join(this.xmlFolder, file);
+    const jsonData = await this.parseXmlFileWithoutLib(filePath);
 
     const booking = jsonData['soap:Body'].FetchBookingResponse.HotelReservation;
     const UniqueIDList = booking['r:UniqueIDList']['c:UniqueID'];

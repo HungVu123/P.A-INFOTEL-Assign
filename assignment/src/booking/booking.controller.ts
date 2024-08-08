@@ -65,4 +65,17 @@ export class BookingController {
   async getBooking(@Param('confirmationNo') confirmationNo: string) {
     return this.bookingService.getBookingByConfirmationNo(confirmationNo);
   }
+
+  @Get('withoutLib/:confirmationNo')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Convert XML-JSON' })
+  @ApiResponse({ status: 201, description: 'Successfully.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Booking not found' })
+  async getBookingWithoutLib(@Param('confirmationNo') confirmationNo: string) {
+    return this.bookingService.getBookingByConfirmationNoWithoutLib(
+      confirmationNo,
+    );
+  }
 }

@@ -16,9 +16,9 @@ export class BookingService {
   async parseXmlFileWithLib(filePath: string): Promise<any> {
     const fileContent = fs.readFileSync(filePath, 'utf8');
     const parser = new xml2js.Parser({
-      explicitArray: false, // This prevents creating arrays for single elements
-      mergeAttrs: true, // This merges attributes with child elements
-      explicitRoot: false, // This prevents the root element from being wrapped
+      explicitArray: false,
+      mergeAttrs: true,
+      explicitRoot: false,
     });
     return new Promise((resolve, reject) => {
       parser.parseString(fileContent, (err, result) => {
@@ -113,7 +113,7 @@ export class BookingService {
   async formatDate(dateStr: string): Promise<string> {
     const date = new Date(dateStr);
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-based
+    const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
 
     return `${year}-${month}-${day}`;

@@ -14,15 +14,15 @@ async function bootstrap() {
     origin: '*', // Allow all origins
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Accept, Authorization',
-    credentials: true, // Optional, only if you need to allow cookies
+    credentials: true,
   });
 
   app.use(
     session({
-      secret: 'yourSecretKey', // Replace with a strong secret key
+      secret: process.env.SECRETKEY,
       resave: false,
       saveUninitialized: false,
-      cookie: { secure: false }, // Set to true if using HTTPS
+      cookie: { secure: false },
     }),
   );
   app.use(passport.initialize());

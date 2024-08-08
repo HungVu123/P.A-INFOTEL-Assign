@@ -19,7 +19,7 @@ import { PaymentModule } from './payment/payment.module';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       entities: [User],
-      synchronize: true, // Set to false in production
+      synchronize: true,
     }),
     AuthModule,
     BookingModule,
